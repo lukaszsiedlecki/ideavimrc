@@ -11,7 +11,12 @@ navigation, refactoring, git, debugging, and window/tab management.
 
 ## Usage
 
-Symlink into place:
+`~/.ideavimrc` is a symlink to the `.ideavimrc` file in this repo — editing
+either path edits the same file, so there's nothing to keep in sync
+manually. Only `git add`/`git commit` here still need to happen by hand to
+snapshot a change into history.
+
+On a new machine, recreate the symlink:
 
 ```sh
 ln -sf ~/repo/ideavimrc/.ideavimrc ~/.ideavimrc
