@@ -1,0 +1,846 @@
+" ~/.ideavimrc - IdeaVim configuration
+" Docs: https://jb.gg/h38q75   Examples: https://jb.gg/share-ideavimrc
+" Reload after editing with:  :source ~/.ideavimrc   (or Ctrl+Shift+O)
+"
+" NOTE: every explanatory comment in this file goes on its OWN LINE, directly
+" above the option/mapping it describes. Trailing "same-line" comments are
+" NOT safe in IdeaVim: :set doesn't reliably strip a trailing " comment the
+" way real Vim does (caused E518 "Unknown option"), and :map-family commands
+" (nnoremap, xnoremap, ...) treat a trailing " as part of the mapping itself,
+" which gets replayed as literal keystrokes into whatever buffer is focused
+" when the mapping fires - this actually corrupted this very file once.
+
+" ==========================================
+" UNIVERSAL OPTIONS (IDE-agnostic, transferable to any Vim/Neovim setup)
+" ==========================================
+
+" leader key = Space, used as prefix for custom <leader>-mappings added later
+let mapleader = " "
+
+" show absolute line number on the current line
+set number
+" show relative line numbers elsewhere (easy to count motions like 5j/3k)
+set relativenumber
+" keep at least 5 lines of context above/below the cursor when scrolling
+set scrolloff=5
+" show partially-typed commands (e.g. "2d") in the status area
+set showcmd
+" show current mode (INSERT/VISUAL/etc.) in the status area
+set showmode
+" flash the screen instead of beeping on errors
+set visualbell
+
+" searches are case-insensitive by default
+set ignorecase
+" ...unless the search pattern itself contains an uppercase letter
+set smartcase
+" show matches live while typing a search, before pressing Enter
+set incsearch
+" highlight all matches of the last search until cleared
+set hlsearch
+" :s/x/y/ replaces all matches on the line, as if /g were always appended
+set gdefault
+
+" remember more command-line and search history entries
+set history=1000
+
+" ==========================================
+" IDE-ONLY OPTIONS (IdeaVim <-> IntelliJ integration, no plain-Vim equivalent)
+" ==========================================
+
+" yank/delete go to the system clipboard (Ctrl+C/V), and paste is IDE-aware (respects multi-caret, live templates)
+set clipboard+=unnamedplus,ideaput
+" J (join lines) uses IDE-aware smart join, e.g. merges Java statements sensibly instead of a naive text join
+set ideajoin
+" Vim marks (ma, 'a) also show up as IDE gutter bookmarks
+set ideamarks
+" stay in the current Vim mode during IDE refactor input (e.g. rename) instead of forcing Insert mode
+set idearefactormode=keep
+" ideastatusicon defaults to "enabled" (normal appearance that reflects real on/off state) - left unset
+" on purpose; "gray" looks permanently dim regardless of state, which hides the very thing this icon is for
+
+" ==========================================
+" QOL MAPPINGS (no plugins involved, just native remaps)
+" ==========================================
+
+" repeat search forward (n), then center that line on screen (zz) so matches never land at the screen edge
+nnoremap n nzz
+" same, but for searching backward (N)
+nnoremap N Nzz
+" half-page-down, then recenter
+nnoremap <C-d> <C-d>zz
+" half-page-up, then recenter
+nnoremap <C-u> <C-u>zz
+" Y yanks to end of line, matching how D and C behave (default Vim Y == yy, which is inconsistent and surprising)
+nnoremap Y y$
+" in Visual mode, paste over a selection WITHOUT overwriting your unnamed register with the replaced text, so you can paste the same thing again
+xnoremap p P
+" pressing Esc also clears search highlighting; Vim doesn't do this on its own, so hlsearch matches would otherwise stay lit until the next search.
+" Also forwards to the native EditorEscape action afterward - without it,
+" this mapping swallows Escape entirely and IDE behaviors that are normally
+" attached to it (most importantly: collapsing multi-cursor/SelectNextOccurrence
+" back down to a single caret) silently stop working. nmap, NOT nnoremap -
+" <Action>(...) needs recursive mapping to resolve (see A-j/A-k comment above).
+nmap <silent> <Esc> :nohlsearch<CR><Action>(EditorEscape)
+
+" --- Pane/split navigation (you use splits daily) ---
+" 'sethandler' tells IdeaVim to own these keys in Normal mode, so IntelliJ
+" doesn't swallow them before IdeaVim ever sees them.
+sethandler <C-h> n:vim
+sethandler <C-j> n:vim
+sethandler <C-k> n:vim
+sethandler <C-l> n:vim
+" move focus to the split to the left
+nnoremap <C-h> <C-w>h
+" move focus to the split to the right
+nnoremap <C-l> <C-w>l
+" move focus to the split above
+nnoremap <C-k> <C-w>k
+" move focus to the split below
+nnoremap <C-j> <C-w>j
+
+" --- Jumplist navigation ---
+" <C-i> shares its keycode with <Tab>, so C-o -> Back / C-i -> Forward
+" matches the native Vim jumplist direction (C-o back, C-i/Tab forward).
+" 'sethandler' owns these in Normal mode - by default IntelliJ intercepts
+" Ctrl+O for "Override Methods" before IdeaVim ever sees it.
+sethandler <C-o> n:vim
+sethandler <C-i> n:vim
+" step backward through the IDE's navigation history (where the cursor was before jumping)
+nmap <C-o> <Action>(Back)
+" step forward through the IDE's navigation history (undo a Back)
+nmap <C-i> <Action>(Forward)
+
+" --- Method navigation ---
+" jump to the start of the previous method/function in the current file
+nmap [[ <Action>(MethodUp)
+" jump to the start of the next method/function in the current file
+nmap ]] <Action>(MethodDown)
+
+" --- Semantic expand / shrink selection ---
+" plain 'map' (not nmap) on purpose: start selecting from Normal mode, then
+" keep pressing the same key again from Visual mode to expand further.
+" 'sethandler' owns these in Normal+Visual, since IntelliJ's default keymap
+" already binds Alt+Up/Alt+Down to its own Extend/Shrink Selection actions.
+sethandler <A-Up> n-v:vim
+sethandler <A-Down> n-v:vim
+" grow the selection outward by one syntactic level (word -> expression -> statement -> block -> ...)
+map <A-Up> <Action>(EditorSelectWord)
+" shrink the selection back in by one syntactic level (the reverse of A-Up)
+map <A-Down> <Action>(EditorUnSelectWord)
+
+" --- Move lines up / down ---
+" nmap on purpose, NOT nnoremap - <Action>(...) is a special pseudo-notation
+" (like <Plug> in real Vim) that needs recursive mapping to resolve; noremap
+" blocks that and the literal RHS text gets typed into the buffer instead
+" (we hit this for real with the C-o/C-i jumplist mappings above).
+" 'sethandler' owns Alt+J in Normal mode - IntelliJ's default keymap already
+" binds bare Alt+J to Select Next Occurrence, so without this it would win
+" over MoveLineDown before IdeaVim ever sees the key. Alt+K has no such
+" default binding, so it doesn't need one.
+sethandler <A-j> n:vim
+nmap <A-j> <Action>(MoveLineDown)
+nmap <A-k> <Action>(MoveLineUp)
+
+" --- Move whole statements up / down (PSI-aware, distinct from A-j/A-k above) ---
+" unlike MoveLineDown/Up, this moves the ENTIRE current statement as one
+" atomic unit (even if it spans several lines, e.g. a multi-line if block)
+" past its neighboring statement, so it can never leave code structurally
+" broken mid-move the way repeatedly moving single lines through a block could.
+" This is IntelliJ's own default shortcut for these two actions already, and
+" nothing in this file uses Ctrl-Shift-Up/Down, so no sethandler is needed.
+nmap <C-S-Up> <Action>(MoveStatementUp)
+nmap <C-S-Down> <Action>(MoveStatementDown)
+
+" --- Multiple cursors (IDE multi-caret) ---
+" none of these three collide with IntelliJ's own defaults (Alt+J / Alt+Shift+J /
+" Ctrl+Alt+Shift+J), so no sethandler needed here.
+" add the next occurrence of the word/selection under the cursor to the selection (multi-cursor)
+map <A-n> <Action>(SelectNextOccurrence)
+" remove the most recently added occurrence from the multi-cursor selection
+map <A-p> <Action>(UnselectPreviousOccurrence)
+" select every occurrence of the word/selection under the cursor at once
+map <A-a> <Action>(SelectAllOccurrences)
+" 'sethandler' owns these in Normal+Visual - IntelliJ's default keymap binds
+" bare Ctrl-Alt-Up/Down to PreviousOccurence/NextOccurence (navigating a
+" Find-Usages-style occurrence list); we're overriding that in favor of
+" adding a caret directly above/below instead, a different multi-cursor flavor
+" than A-n/A-p/A-a above (this adds by fixed screen position, not by matching text)
+sethandler <C-A-Up> n-v:vim
+sethandler <C-A-Down> n-v:vim
+" add a new caret directly above, in the same column
+map <C-A-Up> <Action>(EditorCloneCaretAbove)
+" add a new caret directly below, in the same column
+map <C-A-Down> <Action>(EditorCloneCaretBelow)
+
+" --- Tool windows popup ---
+" 'sethandler' owns this in Normal mode - IntelliJ's default keymap already
+" binds Ctrl+Shift+M to EditorMatchBrace (jump to matching brace).
+sethandler <C-S-m> n:vim
+" open a popup listing every tool window (Project, Terminal, Commit, Database, ...) for quick switching
+nmap <C-S-m> <Action>(ToolWindowsGroup)
+
+" ==========================================
+" WHICH-KEY (requires the "Which-Key" plugin installed from the JetBrains
+" Marketplace - Settings > Plugins > Marketplace > search "Which-Key")
+"
+" No <leader>-mappings are defined yet on purpose (that's the next stage).
+" This section just turns on the popup infrastructure first, so every
+" <leader>-mapping added from here on is immediately discoverable by typing
+" <leader> and reading the popup, instead of needing to memorize a list.
+" ==========================================
+
+" enable the which-key popup: shows available key-sequence continuations as you type them
+set which-key
+" disable the timeout that normally cancels an incomplete key sequence, so which-key can wait for you to finish typing instead of a mapping firing early on a partial match
+set notimeout
+" show the popup immediately after pressing <leader>, instead of waiting a delay first
+let g:WhichKey_DefaultDelay = 0
+" also list plain built-in Vim keys (not just <leader>-mappings) in the popup
+let g:WhichKey_ShowVimActions = "true"
+" sort popup entries alphabetically by key without regard to case (default
+" is case-SENSITIVE, which sorts by ASCII order - ALL uppercase before ANY
+" lowercase - e.g. under Git this put GR before Ga/Gb/Gc/Gp/Gr instead of
+" sorting r next to R); SortOrder itself already defaults to "by_key"
+" (plain alphabetical), so only this one override is needed
+let g:WhichKey_SortCaseSensitive = "false"
+
+" ==========================================
+" PLUGINS (added on demand, one at a time, only once a real need shows up
+" in daily work - not preloaded just because a reference config has them)
+" ==========================================
+
+" enable the built-in NERDTree emulation (maps onto the IDE's Project tool window)
+set nerdtree
+
+" --- Text-editing operators (all bundled in IdeaVim itself, no separate
+" JetBrains Marketplace plugin needed - found by surveying ~43 other
+" people's .ideavimrc configs for what's commonly used beyond the reference) ---
+
+" surround: ys{motion}{char} adds a surrounding (e.g. ysiw" wraps the word in
+" quotes), cs{old}{new} changes one surrounding to another (e.g. cs"' turns
+" "x" into 'x'), ds{char} deletes a surrounding (e.g. ds" removes quotes),
+" S in Visual mode wraps the selection
+set surround
+" commentary: gcc toggles a line comment (takes a count, e.g. 3gcc), gc{motion}
+" comments the target of a motion (e.g. gcap comments a paragraph), gc in
+" Visual mode comments the selection
+set commentary
+" ReplaceWithRegister: gr{motion}/grr replaces text with the contents of a
+" register without clobbering that register - like the xnoremap p P trick
+" above, but works with any motion/register, not just Visual paste
+set ReplaceWithRegister
+" exchange: cx{motion} marks a piece of text, cx{motion} again somewhere else
+" swaps the two pieces of text with each other; cxc cancels a pending exchange
+set exchange
+" argtextobj: adds the 'a' (argument) text object - daa deletes an argument,
+" cia changes the inner argument, via selects it; aware of nested parens
+set argtextobj
+" matchit: extends % to also jump between if/else/end, HTML/XML tags, etc,
+" not just single bracket/paren/brace pairs
+set matchit
+" highlightedyank: briefly flashes a highlight on whatever text was just
+" yanked (yy, y{motion}, etc) - purely visual feedback, no new keybinding
+set highlightedyank
+
+" --- These two need a separate JetBrains Marketplace plugin installed
+" first (unlike everything above, which is bundled in IdeaVim itself) ---
+
+" quickscope: requires the "IdeaVim-Quickscope" plugin. Always-on highlight
+" of a unique target character in every word on the line, to help aim f/F/t/T
+" (e.g. pressing f shows which letter to type next to land exactly where you want)
+set quickscope
+" easymotion: requires the "IdeaVim-EasyMotion" AND "AceJump" plugins.
+" <leader><leader>{motion} labels every possible jump target on screen with a
+" letter - type that letter and the cursor jumps straight there in one move
+" (e.g. <leader><leader>w labels every word start currently visible)
+set easymotion
+
+" ==========================================
+" LEADER MAPPINGS - Goto / Search / Files
+" First real content for the which-key popup (previous stage was empty by
+" design, nothing to show yet). Each group's WhichKeyDesc_* label sits right
+" next to its mappings below, so the popup label can't drift out of sync
+" with what's actually mapped.
+" ==========================================
+
+" --- Goto (<leader>g) ---
+
+" jump to where the symbol under the cursor is declared
+nmap <leader>gd <Action>(GotoDeclaration)
+" jump to the implementation of an interface/abstract method under the cursor
+nmap <leader>gi <Action>(GotoImplementation)
+" jump to the test for the code under the cursor (or offer to create one)
+nmap <leader>gt <Action>(GotoTest)
+" jump to the declaration of the TYPE of the symbol under the cursor, not the symbol itself
+nmap <leader>gy <Action>(GotoTypeDeclaration)
+" jump to the method this one overrides/implements in its superclass or interface
+nmap <leader>go <Action>(GotoSuperMethod)
+" jump to the next error/warning in the current file
+nmap <leader>ge <Action>(GotoNextError)
+" jump to the previous error/warning in the current file
+nmap <leader>gE <Action>(GotoPreviousError)
+let g:WhichKeyDesc_goto = "<leader>g Goto"
+let g:WhichKeyDesc_goto_declaration = "<leader>gd Go To Declaration"
+let g:WhichKeyDesc_goto_implementation = "<leader>gi Go To Implementation"
+let g:WhichKeyDesc_goto_test = "<leader>gt Go To Test"
+let g:WhichKeyDesc_goto_type = "<leader>gy Go To Type Declaration"
+let g:WhichKeyDesc_goto_super_method = "<leader>go Go To Super Method"
+let g:WhichKeyDesc_goto_next_error = "<leader>ge Next Error"
+let g:WhichKeyDesc_goto_prev_error = "<leader>gE Previous Error"
+
+" --- Search (<leader>s) ---
+
+" fuzzy-jump to any file by name
+nmap <leader>sf <Action>(GotoFile)
+" fuzzy-jump to any class by name
+nmap <leader>sc <Action>(GotoClass)
+" fuzzy-jump to any symbol (method/field/etc.) by name, across the whole project
+nmap <leader>ss <Action>(GotoSymbol)
+" universal search across everything (files, classes, actions, settings...) in one box
+nmap <leader>sa <Action>(SearchEverywhere)
+" find every usage of the symbol under the cursor across the project
+nmap <leader>su <Action>(FindUsages)
+" search & run any IDE action or setting by name (the "Find Action" box, default Ctrl+Shift+A) - capital A to avoid clashing with sa = Search Everywhere
+nmap <leader>sA <Action>(GotoAction)
+" focus the navigation bar (the breadcrumb-style path at the top of the editor, navigable with arrow keys)
+nmap <leader>sn <Action>(ShowNavBar)
+" open Search Everywhere's "Text" tab directly - plain-text search across the whole project, newer unified alternative to Find In Files
+nmap <leader>st <Action>(TextSearchAction)
+let g:WhichKeyDesc_search = "<leader>s Search"
+let g:WhichKeyDesc_search_file = "<leader>sf Go To File"
+let g:WhichKeyDesc_search_class = "<leader>sc Go To Class"
+let g:WhichKeyDesc_search_symbol = "<leader>ss Go To Symbol"
+let g:WhichKeyDesc_search_everywhere = "<leader>sa Search Everywhere"
+let g:WhichKeyDesc_search_usages = "<leader>su Find Usages"
+let g:WhichKeyDesc_search_action = "<leader>sA Find Action"
+let g:WhichKeyDesc_search_nav_bar = "<leader>sn Jump To Navigation Bar"
+let g:WhichKeyDesc_search_text = "<leader>st Text Search"
+
+" --- Files (<leader>f) ---
+
+" show recently opened files
+nmap <leader>fr <Action>(RecentFiles)
+" switch to another recently opened project
+nmap <leader>fp <Action>(ManageRecentProjects)
+" show/hide the NERDTree file explorer (Project tool window)
+nmap <leader>fe :NERDTreeToggle<CR>
+" reveal & focus the current file inside the tree (opens it first if closed) - this is what you want when focus already moved to the editor and you need to jump back to the tree
+nmap <leader>fn :NERDTreeFind<CR>
+" copy the current file's absolute filesystem path to the clipboard
+nmap <leader>fy <Action>(CopyAbsolutePath)
+" open "Find in Files" - search (not replace) for text across the whole project
+nmap <leader>fc <Action>(FindInPath)
+" show recently visited CODE LOCATIONS (cursor positions with a code preview) - unlike fr, which lists recently opened FILES
+nmap <leader>fl <Action>(RecentLocations)
+" create a new scratch file - a temporary file that isn't part of the project, good for quick notes/snippets
+nmap <leader>fs <Action>(NewScratchFile)
+" open a file via the native OS file picker dialog
+nmap <leader>fo <Action>(OpenFile)
+" show IDE Local History for the current file - tracks every save automatically, even without git
+nmap <leader>fh <Action>(LocalHistory.ShowHistory)
+" show the current file's path as a popup (without copying it - use fy for that)
+nmap <leader>ff <Action>(ShowFilePath)
+" open the "Select In" popup - reveal the current file in another view (Project, Commit, etc.)
+nmap <leader>fi <Action>(SelectIn)
+" open "Replace in Files" - search AND replace text across the whole project (capital R to sit next to lowercase fr = Recent Files)
+nmap <leader>fR <Action>(ReplaceInPath)
+let g:WhichKeyDesc_files = "<leader>f Files"
+let g:WhichKeyDesc_files_recent = "<leader>fr Recent Files"
+let g:WhichKeyDesc_files_recent_projects = "<leader>fp Recent Projects"
+let g:WhichKeyDesc_file_opt_toggle_nerdtree = "<leader>fe Toggle NERDTree"
+let g:WhichKeyDesc_file_opt_find_nerdtree = "<leader>fn Find current file in NERDTree"
+let g:WhichKeyDesc_file_opt_copy_path = "<leader>fy Copy Absolute Path"
+let g:WhichKeyDesc_file_opt_find_in_path = "<leader>fc Find In Files"
+let g:WhichKeyDesc_file_opt_recent_locations = "<leader>fl Recent Locations"
+let g:WhichKeyDesc_file_opt_new_scratch_file = "<leader>fs New Scratch File"
+let g:WhichKeyDesc_file_opt_open_file = "<leader>fo Open File"
+let g:WhichKeyDesc_file_opt_local_history = "<leader>fh Local History"
+let g:WhichKeyDesc_file_opt_show_path = "<leader>ff Show File Path"
+let g:WhichKeyDesc_file_opt_select_in = "<leader>fi Select In"
+let g:WhichKeyDesc_file_opt_replace_in_path = "<leader>fR Replace In Files"
+
+" ==========================================
+" LEADER MAPPINGS - Window / Tabs
+" ==========================================
+
+" --- Window (<leader>w) ---
+
+" split the current editor into two side-by-side panes (left/right)
+nmap <leader>wv <Action>(SplitVertically)
+" split the current editor into two stacked panes (top/bottom)
+nmap <leader>wh <Action>(SplitHorizontally)
+" remove the split, back to a single pane
+nmap <leader>wu <Action>(Unsplit)
+" close the current tab/file
+nmap <leader>wc <Action>(CloseContent)
+" hide/close ONLY the currently focused tool window (Database, Terminal,
+" Commit, etc.) - the single-panel counterpart to <leader>W (hides ALL of them)
+nmap <leader>wq <Action>(HideActiveWindow)
+" close the Terminal specifically, regardless of what's currently focused -
+" IntelliJ 2023.2+ removed the old toggle behavior on Activate*ToolWindow
+" (pressing it twice used to close it, no longer does), so this focuses
+" Terminal first and then hides whatever is now active (= Terminal)
+nmap <leader>wT <Action>(ActivateTerminalToolWindow)<Action>(HideActiveWindow)
+" same idea, for the Database tool window specifically
+nmap <leader>wB <Action>(ActivateDatabaseToolWindow)<Action>(HideActiveWindow)
+" same idea, for the Commit tool window specifically
+nmap <leader>wG <Action>(ActivateCommitToolWindow)<Action>(HideActiveWindow)
+" move the current editor tab to the other editor split/tab group (only meaningful with a split open)
+nmap <leader>wm <Action>(MoveEditorToOppositeTabGroup)
+" temporarily zoom the current split to fill the whole editor area (toggle back to restore the split layout)
+nmap <leader>wM <Action>(MaximizeEditorInSplit)
+" wrap the selection/current statement in an IDE-generated construct (if/try/for/etc, picked from a menu) -
+" distinct from the vim-surround plugin (ys/cs/ds) from the text-editing operators section: this one is
+" AST-aware and offers language constructs, not just characters/brackets/quotes
+nmap <leader>wS <Action>(SurroundWith)
+" remove a surrounding construct (if/try/for/etc) while keeping its contents - the reverse of wS
+nmap <leader>wU <Action>(Unwrap)
+let g:WhichKeyDesc_window = "<leader>w Window / Tabs"
+let g:WhichKeyDesc_window_split_vertically = "<leader>wv Split Vertically"
+let g:WhichKeyDesc_window_hide_active = "<leader>wq Hide Active Tool Window"
+let g:WhichKeyDesc_window_close_terminal = "<leader>wT Close Terminal"
+let g:WhichKeyDesc_window_close_database = "<leader>wB Close Database"
+let g:WhichKeyDesc_window_close_commit = "<leader>wG Close Commit"
+let g:WhichKeyDesc_window_split_horizontally = "<leader>wh Split Horizontally"
+let g:WhichKeyDesc_window_unsplit = "<leader>wu Unsplit"
+let g:WhichKeyDesc_window_close = "<leader>wc Close Tab"
+let g:WhichKeyDesc_window_move_to_opposite_group = "<leader>wm Move Tab To Opposite Group"
+let g:WhichKeyDesc_window_maximize = "<leader>wM Maximize Editor In Split"
+let g:WhichKeyDesc_window_surround_with = "<leader>wS Surround With"
+let g:WhichKeyDesc_window_unwrap = "<leader>wU Unwrap"
+
+" ==========================================
+" LEADER MAPPINGS - Run
+" ==========================================
+
+" --- Run (<leader>r) ---
+
+" open the Run popup menu (pick and run any configuration from a menu)
+nmap <leader>rm <Action>(RunMenu)
+" run the class under the cursor directly (e.g. a file with a main method)
+nmap <leader>rn <Action>(RunClass)
+" run whatever is under the cursor in its current context (e.g. a single test method, not the whole class)
+nmap <leader>rc <Action>(ContextRun)
+" re-run the last executed run configuration
+nmap <leader>rr <Action>(Rerun)
+" run all tests in the current context (file/class/module)
+nmap <leader>rt <Action>(RunTests)
+" re-run only the tests that failed last time
+nmap <leader>rf <Action>(RerunFailedTests)
+" stop the currently running process
+nmap <leader>rs <Action>(Stop)
+" open a picker to choose which run configuration to use
+nmap <leader>rC <Action>(ChooseRunConfiguration)
+let g:WhichKeyDesc_run = "<leader>r Run"
+let g:WhichKeyDesc_run_menu = "<leader>rm Run Menu"
+let g:WhichKeyDesc_run_class = "<leader>rn Run Class"
+let g:WhichKeyDesc_run_context = "<leader>rc Context Run"
+let g:WhichKeyDesc_run_rerun = "<leader>rr Rerun"
+let g:WhichKeyDesc_run_tests = "<leader>rt Run Tests"
+let g:WhichKeyDesc_run_failed = "<leader>rf Rerun Failed Tests"
+let g:WhichKeyDesc_run_stop = "<leader>rs Stop"
+let g:WhichKeyDesc_run_choose_configuration = "<leader>rC Choose Run Configuration"
+
+" ==========================================
+" LEADER MAPPINGS - Debugging
+" ==========================================
+
+" --- Debug (<leader>d) ---
+
+" start debugging the current/default run configuration
+nmap <leader>dx <Action>(Debug)
+" debug whatever is under the cursor in its current context
+nmap <leader>dc <Action>(ContextDebug)
+" open the breakpoints management dialog
+nmap <leader>dv <Action>(ViewBreakpoints)
+" edit the breakpoint at the cursor's line (conditions, log message, etc.)
+nmap <leader>de <Action>(EditBreakpoint)
+" temporarily disable all breakpoints without removing them
+nmap <leader>dm <Action>(XDebugger.MuteBreakpoints)
+" toggle a breakpoint on the current line
+nmap <leader>db <Action>(ToggleLineBreakpoint)
+" resume execution until it reaches the cursor's line
+nmap <leader>dC <Action>(RunToCursor)
+" step into the function call on the current line
+nmap <leader>di <Action>(StepInto)
+" execute the current line and stop at the next one, without stepping into calls
+nmap <leader>do <Action>(StepOver)
+" resume execution until the next breakpoint
+nmap <leader>dr <Action>(Resume)
+" open the evaluate-expression dialog
+nmap <leader>dR <Action>(EvaluateExpression)
+" focus the Debug tool window
+nmap <leader>dw <Action>(ActivateDebugToolWindow)
+" remove every breakpoint in the project at once (capital B - lowercase db is the single-breakpoint toggle)
+nmap <leader>dB <Action>(Debugger.RemoveAllBreakpoints)
+let g:WhichKeyDesc_debugging = "<leader>d Debugging"
+let g:WhichKeyDesc_debug_execute = "<leader>dx Execute Debug"
+let g:WhichKeyDesc_debug_context = "<leader>dc Context Debug"
+let g:WhichKeyDesc_debug_view_breakpoints = "<leader>dv View Breakpoints"
+let g:WhichKeyDesc_debug_edit_breakpoints = "<leader>de Edit Breakpoints"
+let g:WhichKeyDesc_debug_mute_breakpoints = "<leader>dm Mute Breakpoints"
+let g:WhichKeyDesc_debug_toggle_line_breakpoint = "<leader>db Toggle Line Breakpoint"
+let g:WhichKeyDesc_debug_run_to_cursor = "<leader>dC Run to Cursor"
+let g:WhichKeyDesc_debug_step_into = "<leader>di Step Into"
+let g:WhichKeyDesc_debug_step_over = "<leader>do Step Over"
+let g:WhichKeyDesc_debug_resume = "<leader>dr Resume Debugging"
+let g:WhichKeyDesc_debug_evaluate_expression = "<leader>dR Evaluate Expression"
+let g:WhichKeyDesc_debug_activate_tool_window = "<leader>dw Activate Debug Tool Window"
+let g:WhichKeyDesc_debug_remove_all_breakpoints = "<leader>dB Remove All Breakpoints"
+
+" ==========================================
+" LEADER MAPPINGS - Language / Refactor
+" ==========================================
+
+" --- Language (<leader>l) ---
+
+" open a popup menu listing all available refactorings for what's under the cursor
+nmap <leader>ll <Action>(Refactorings.QuickListPopupAction)
+" rename the symbol under the cursor everywhere it's used
+nmap <leader>lr <Action>(RenameElement)
+" change a method's signature (params, return type, name) and update all call sites
+nmap <leader>lc <Action>(ChangeSignature)
+" extract the expression under the cursor into a new local variable
+nmap <leader>lv <Action>(IntroduceVariable)
+" inline the variable/method under the cursor (replace its usages with its definition - the opposite of extract)
+nmap <leader>li <Action>(Inline)
+" extract the expression under the cursor into a new field
+nmap <leader>lf <Action>(IntroduceField)
+" extract the selected code into a new method
+nmap <leader>lm <Action>(ExtractMethod)
+" extract the expression under the cursor into a new constant
+nmap <leader>lC <Action>(IntroduceConstant)
+" extract the expression under the cursor into a new method parameter
+nmap <leader>lp <Action>(IntroduceParameter)
+" bundle multiple parameters of a method into a single parameter object
+nmap <leader>lo <Action>(IntroduceParameterObject)
+" generate getters/setters for fields and replace direct field access with them
+nmap <leader>le <Action>(EncapsulateFields)
+" show context-aware quick-fixes/intentions for the code under the cursor
+nmap <leader>la <Action>(ShowIntentionActions)
+" reformat code according to the project's code style
+nmap <leader>lR <Action>(ReformatCode)
+" run static code inspections over the project/file
+nmap <leader>lI <Action>(InspectCode)
+" generate boilerplate code (constructors, getters/setters, equals/hashCode, etc.)
+nmap <leader>lG <Action>(Generate)
+" remove unused imports and sort the remaining ones
+nmap <leader>lO <Action>(OptimizeImports)
+" delete the symbol under the cursor, but check for usages first and warn/abort if it's still referenced elsewhere
+nmap <leader>ld <Action>(SafeDelete)
+" generate an override/implementation of a method from the superclass/interface (opens a picker)
+nmap <leader>lM <Action>(OverrideMethods)
+" rename the current file itself (distinct from lr, which renames the symbol under the cursor)
+nmap <leader>lF <Action>(RenameFile)
+let g:WhichKeyDesc_language = "<leader>l Language"
+let g:WhichKeyDesc_language_menu = "<leader>ll Quick List"
+let g:WhichKeyDesc_language_rename = "<leader>lr Rename"
+let g:WhichKeyDesc_language_change_signature = "<leader>lc Change Signature"
+let g:WhichKeyDesc_language_introduce_variable = "<leader>lv Introduce Variable"
+let g:WhichKeyDesc_language_inline_variable = "<leader>li Inline"
+let g:WhichKeyDesc_language_introduce_field = "<leader>lf Introduce Field"
+let g:WhichKeyDesc_language_extract_method = "<leader>lm Extract Method"
+let g:WhichKeyDesc_language_introduce_constant = "<leader>lC Introduce Constant"
+let g:WhichKeyDesc_language_introduce_parameter = "<leader>lp Introduce Parameter"
+let g:WhichKeyDesc_language_introduce_param_object = "<leader>lo Introduce Parameter Object"
+let g:WhichKeyDesc_language_encapsulate = "<leader>le Encapsulate Fields"
+let g:WhichKeyDesc_language_show_intention_actions = "<leader>la Show Intention Actions"
+let g:WhichKeyDesc_language_reformat_code = "<leader>lR Reformat Code"
+let g:WhichKeyDesc_language_inspect_code = "<leader>lI Inspect Code"
+let g:WhichKeyDesc_language_generate = "<leader>lG Generate"
+let g:WhichKeyDesc_language_optimize_imports = "<leader>lO Optimize Imports"
+let g:WhichKeyDesc_language_safe_delete = "<leader>ld Safe Delete"
+let g:WhichKeyDesc_language_override_methods = "<leader>lM Override Methods"
+let g:WhichKeyDesc_language_rename_file = "<leader>lF Rename File"
+
+" ==========================================
+" LEADER MAPPINGS - Tabs
+" ==========================================
+
+" --- Tabs (<leader>t) ---
+
+" pin the active tab so it stays put and isn't auto-closed by tab limits
+nmap <leader>tP <Action>(PinActiveEditorTab)
+" jump directly to editor tab 1
+nmap <leader>tg1 <Action>(GoToTab1)
+" jump directly to editor tab 2
+nmap <leader>tg2 <Action>(GoToTab2)
+" jump directly to editor tab 3
+nmap <leader>tg3 <Action>(GoToTab3)
+" jump directly to editor tab 4
+nmap <leader>tg4 <Action>(GoToTab4)
+" jump directly to editor tab 5
+nmap <leader>tg5 <Action>(GoToTab5)
+" jump directly to editor tab 6
+nmap <leader>tg6 <Action>(GoToTab6)
+" jump directly to editor tab 7
+nmap <leader>tg7 <Action>(GoToTab7)
+" jump directly to editor tab 8
+nmap <leader>tg8 <Action>(GoToTab8)
+" jump directly to editor tab 9
+nmap <leader>tg9 <Action>(GoToTab9)
+" switch to the next editor tab (wraps around at the end)
+nmap <leader>tn <Action>(NextTab)
+" switch to the previous editor tab (wraps around at the start)
+nmap <leader>tp <Action>(PreviousTab)
+" close the current tab
+nmap <leader>tx <Action>(CloseContent)
+" close every open tab
+nmap <leader>tX <Action>(CloseAllEditors)
+" close every tab except the one you're on
+nmap <leader>to <Action>(CloseAllEditorsButActive)
+" close every unpinned tab (pinned ones survive)
+nmap <leader>ta <Action>(CloseAllUnpinnedEditors)
+" close every tab to the right of the current one
+nmap <leader>tr <Action>(CloseAllToTheRight)
+" close every tab to the left of the current one
+nmap <leader>tl <Action>(CloseAllToTheLeft)
+let g:WhichKeyDesc_tabs = "<leader>t Tabs"
+let g:WhichKeyDesc_tabs_pin = "<leader>tP Pin Active Tab"
+let g:WhichKeyDesc_tabs_go_to = "<leader>tg Go to Tab"
+let g:WhichKeyDesc_tabs_go_to_1 = "<leader>tg1 Go to Tab 1"
+let g:WhichKeyDesc_tabs_go_to_2 = "<leader>tg2 Go to Tab 2"
+let g:WhichKeyDesc_tabs_go_to_3 = "<leader>tg3 Go to Tab 3"
+let g:WhichKeyDesc_tabs_go_to_4 = "<leader>tg4 Go to Tab 4"
+let g:WhichKeyDesc_tabs_go_to_5 = "<leader>tg5 Go to Tab 5"
+let g:WhichKeyDesc_tabs_go_to_6 = "<leader>tg6 Go to Tab 6"
+let g:WhichKeyDesc_tabs_go_to_7 = "<leader>tg7 Go to Tab 7"
+let g:WhichKeyDesc_tabs_go_to_8 = "<leader>tg8 Go to Tab 8"
+let g:WhichKeyDesc_tabs_go_to_9 = "<leader>tg9 Go to Tab 9"
+let g:WhichKeyDesc_tabs_next = "<leader>tn Next Tab"
+let g:WhichKeyDesc_tabs_prev = "<leader>tp Previous Tab"
+let g:WhichKeyDesc_tabs_close = "<leader>tx Close Current Tab"
+let g:WhichKeyDesc_tabs_close_all = "<leader>tX Close All Tabs"
+let g:WhichKeyDesc_tabs_close_all_but_active = "<leader>to Close All Tabs But Active"
+let g:WhichKeyDesc_tabs_close_all_unpinned = "<leader>ta Close All Unpinned Tabs"
+let g:WhichKeyDesc_tabs_close_right = "<leader>tr Close Tabs To The Right"
+let g:WhichKeyDesc_tabs_close_left = "<leader>tl Close Tabs To The Left"
+
+" ==========================================
+" LEADER MAPPINGS - Display
+" ==========================================
+
+" --- Display (<leader>D) ---
+
+" toggle Distraction-Free mode (hides all UI chrome except the editor itself)
+nmap <leader>Dd <Action>(ToggleDistractionFreeMode)
+" toggle Zen mode (Distraction-Free + fullscreen combined)
+nmap <leader>Dz <Action>(ToggleZenMode)
+" ToggleFullScreen (<leader>Df) removed - doesn't work under the COSMIC desktop
+" environment (no known workaround), so it's not worth keeping in the file
+let g:WhichKeyDesc_display = "<leader>D Display options"
+let g:WhichKeyDesc_df_mode = "<leader>Dd Toggle Distraction-Free mode"
+let g:WhichKeyDesc_zen_mode = "<leader>Dz Toggle Zen mode"
+
+" ==========================================
+" LEADER MAPPINGS - Information
+" ==========================================
+
+" --- Information (<leader>i) ---
+
+" show the full error/warning description for the code under the cursor
+nmap <leader>ie <Action>(ShowErrorDescription)
+" show the inferred type of the expression under the cursor
+nmap <leader>it <Action>(ExpressionTypeInfo)
+" show parameter hints for the method call under the cursor
+nmap <leader>ip <Action>(ParameterInfo)
+" quick popup preview of the Javadoc/KDoc for the symbol under the cursor
+nmap <leader>ij <Action>(QuickJavaDoc)
+" show the current file's structure (methods/fields/classes) in a searchable popup
+nmap <leader>if <Action>(FileStructurePopup)
+" generate a UML diagram for the current class/package
+nmap <leader>iU <Action>(ShowUmlDiagram)
+" show the call hierarchy (who calls this / what this calls) for the symbol under the cursor
+nmap <leader>ih <Action>(CallHierarchy)
+" show all usages of the symbol under the cursor in a popup (quicker than full Find Usages)
+nmap <leader>iu <Action>(ShowUsages)
+" show the override hierarchy for the method under the cursor
+nmap <leader>im <Action>(MethodHierarchy)
+" show the class/interface inheritance hierarchy for the symbol under the cursor
+nmap <leader>iy <Action>(TypeHierarchy)
+" highlight every usage of the symbol under the cursor directly in the current file (no popup)
+nmap <leader>iH <Action>(HighlightUsagesInFile)
+" jump to the next usage highlighted by iH
+nmap <leader>in <Action>(GotoNextElementUnderCaretUsage)
+" jump to the previous usage highlighted by iH
+nmap <leader>iN <Action>(GotoPrevElementUnderCaretUsage)
+let g:WhichKeyDesc_info = "<leader>i Information"
+let g:WhichKeyDesc_info_error = "<leader>ie Error Description"
+let g:WhichKeyDesc_info_type = "<leader>it Expression Type"
+let g:WhichKeyDesc_info_parameter = "<leader>ip Parameter Info"
+let g:WhichKeyDesc_info_javadoc = "<leader>ij Java Doc"
+let g:WhichKeyDesc_info_file_structure = "<leader>if File Structure"
+let g:WhichKeyDesc_info_uml_diagram = "<leader>iU UML Diagram"
+let g:WhichKeyDesc_info_call_hierarchy = "<leader>ih Call Hierarchy"
+let g:WhichKeyDesc_info_show_usages = "<leader>iu Usages"
+let g:WhichKeyDesc_info_method_hierarchy = "<leader>im Method Hierarchy"
+let g:WhichKeyDesc_info_type_hierarchy = "<leader>iy Type Hierarchy"
+let g:WhichKeyDesc_info_highlight_usages = "<leader>iH Highlight Usages In File"
+let g:WhichKeyDesc_info_next_usage = "<leader>in Next Highlighted Usage"
+let g:WhichKeyDesc_info_prev_usage = "<leader>iN Previous Highlighted Usage"
+
+" ==========================================
+" LEADER MAPPINGS - Bookmarks
+" ==========================================
+
+" --- Bookmarks (<leader>b) ---
+
+" open the bookmarks popup (quick-switch list of all bookmarks)
+nmap <leader>bm <Action>(Bookmarks)
+" open the Bookmarks tool window's list view
+nmap <leader>bs <Action>(ShowBookmarks)
+" focus/open the Bookmarks tool window pane
+nmap <leader>bt <Action>(ActivateBookmarksToolWindow)
+" toggle a bookmark on the current line (add if absent, remove if present)
+nmap <leader>bb <Action>(ToggleBookmark)
+" edit the current line's bookmark (add a mnemonic/description) - creates one if it doesn't exist yet
+nmap <leader>be <Action>(EditBookmark)
+" jump to the previous bookmark (across the whole project)
+nmap <leader>bp <Action>(GotoPreviousBookmark)
+" jump to the next bookmark (across the whole project)
+nmap <leader>bn <Action>(GotoNextBookmark)
+let g:WhichKeyDesc_bookmarks = "<leader>b Bookmarks"
+let g:WhichKeyDesc_bookmarks_menu = "<leader>bm Bookmarks Popup"
+let g:WhichKeyDesc_bookmarks_show = "<leader>bs Show Bookmarks Tool Window"
+let g:WhichKeyDesc_bookmarks_tool_window = "<leader>bt Focus Bookmarks Tool Window"
+let g:WhichKeyDesc_bookmarks_toggle = "<leader>bb Toggle Bookmark"
+let g:WhichKeyDesc_bookmarks_edit = "<leader>be Edit Bookmark"
+let g:WhichKeyDesc_bookmarks_prev = "<leader>bp Previous Bookmark"
+let g:WhichKeyDesc_bookmarks_next = "<leader>bn Next Bookmark"
+
+" ==========================================
+" LEADER MAPPINGS - Misc
+" These are complete 2-key sequences, not group prefixes with sub-keys, so
+" there's no top-level group label - just one WhichKeyDesc per mapping.
+" ==========================================
+
+" show the context menu (same as right-click) at the cursor position
+nmap <leader>m <Action>(ShowPopupMenu)
+" focus/open the built-in terminal tool window
+nmap <leader>T <Action>(ActivateTerminalToolWindow)
+" focus/open the Database tool window - capital B, to stay distinct from
+" lowercase <leader>b (Bookmarks group above), matching the reference config
+nmap <leader>B <Action>(ActivateDatabaseToolWindow)
+" hide/show ALL open tool windows at once (Database, Terminal, Commit,
+" Project, etc.) - this is a toggle, press again to bring them all back
+nmap <leader>W <Action>(HideAllWindows)
+let g:WhichKeyDesc_popup_menu = "<leader>m Show Popup Menu"
+let g:WhichKeyDesc_terminal = "<leader>T Terminal"
+let g:WhichKeyDesc_database = "<leader>B Database"
+let g:WhichKeyDesc_hide_all_windows = "<leader>W Hide/Restore All Tool Windows"
+
+" ==========================================
+" LEADER MAPPINGS - IdeaVim config
+" ==========================================
+
+" --- IdeaVim (<leader>v) ---
+
+" open ~/.ideavimrc directly in the editor for editing
+nmap <leader>ve :e ~/.ideavimrc<CR>
+" reload ~/.ideavimrc without needing :source - note some option types (like
+" sethandler, notimeout) have needed a full IDE restart to fully take effect
+" even when reloaded this way, per what we've hit earlier in this file
+nmap <leader>vr <Action>(IdeaVim.ReloadVimRc.reload)
+let g:WhichKeyDesc_vim = "<leader>v IdeaVim"
+let g:WhichKeyDesc_vim_edit = "<leader>ve Edit ideavimrc"
+let g:WhichKeyDesc_vim_reload = "<leader>vr Reload ideavimrc"
+
+" ==========================================
+" LEADER MAPPINGS - Case Conversion
+" Requires the "Case Conversion" plugin from JetBrains Marketplace (plugin
+" id me.laria.code.idea_caseconv). These are Visual-mode mappings (vmap),
+" not Normal-mode (nmap), because they act on the current selection - there
+" has to be a selection to convert.
+" ==========================================
+
+" --- Case Conversion (<leader>c, Visual mode) ---
+
+" open a menu to pick which case conversion to apply to the selection
+vmap <leader>cm <Action>(me.laria.code.idea_caseconv.convert_case_menu)
+" convert selection to camelCase
+vmap <leader>cc <Action>(me.laria.code.idea_caseconv.CamelCaseAction)
+" convert selection to PascalCase
+vmap <leader>cp <Action>(me.laria.code.idea_caseconv.PascalCaseAction)
+" convert selection to snake_case
+vmap <leader>cs <Action>(me.laria.code.idea_caseconv.SnakeCaseAction)
+" convert selection to SCREAMING_SNAKE_CASE
+vmap <leader>cS <Action>(me.laria.code.idea_caseconv.ScreamingSnakeCaseAction)
+" convert selection to lowercase
+vmap <leader>cl <Action>(me.laria.code.idea_caseconv.LowerCaseAction)
+" convert selection to UPPERCASE
+vmap <leader>cu <Action>(me.laria.code.idea_caseconv.UpperCaseAction)
+" convert selection to dot.case
+vmap <leader>c. <Action>(me.laria.code.idea_caseconv.DotCaseAction)
+" convert selection to separate words (space-separated)
+vmap <leader>cw <Action>(me.laria.code.idea_caseconv.SeparateWordsAction)
+" convert selection to Title Case
+vmap <leader>ct <Action>(me.laria.code.idea_caseconv.TitleCaseAction)
+" convert selection to dash-case
+vmap <leader>c- <Action>(me.laria.code.idea_caseconv.DashCaseAction)
+" convert selection to Sentence case
+vmap <leader>cd <Action>(me.laria.code.idea_caseconv.SentenceCaseAction)
+let g:WhichKeyDesc_case_conversion = "<leader>c Case Conversion"
+let g:WhichKeyDesc_change_case_menu = "<leader>cm Case Menu"
+let g:WhichKeyDesc_case_conversion_camel = "<leader>cc camelCase"
+let g:WhichKeyDesc_case_conversion_pascal = "<leader>cp PascalCase"
+let g:WhichKeyDesc_case_conversion_snake = "<leader>cs snake_case"
+let g:WhichKeyDesc_case_conversion_screaming_snake = "<leader>cS SCREAMING_SNAKE_CASE"
+let g:WhichKeyDesc_case_conversion_lower = "<leader>cl lowercase"
+let g:WhichKeyDesc_case_conversion_upper = "<leader>cu UPPERCASE"
+let g:WhichKeyDesc_case_conversion_dot = "<leader>c. dot.case"
+let g:WhichKeyDesc_case_conversion_words = "<leader>cw Separate Words"
+let g:WhichKeyDesc_case_conversion_title = "<leader>ct Title Case"
+let g:WhichKeyDesc_case_conversion_dash = "<leader>c- dash-case"
+let g:WhichKeyDesc_case_conversion_sentence = "<leader>cd Sentence case"
+
+" ==========================================
+" LEADER MAPPINGS - Git (in-IDE)
+" ==========================================
+
+" --- Git (<leader>G) ---
+
+" open the Commit tool window to stage and commit changes
+nmap <leader>Gc <Action>(CheckinProject)
+" push committed changes to the remote
+nmap <leader>Gp <Action>(Vcs.Push)
+" open the branch picker (checkout / create / merge branches)
+nmap <leader>Gb <Action>(Git.Branches)
+" show git blame annotations in the left margin of the current file
+nmap <leader>Ga <Action>(Annotate)
+" focus/open the Commit tool window (just switches focus, unlike Gc which starts a commit)
+nmap <leader>Gt <Action>(ActivateCommitToolWindow)
+" discard ALL uncommitted changes in the current file: selects the whole
+" file first (gg V G), then rolls back everything in that selection - by
+" itself, Vcs.RollbackChangedLines only reverts the single line the cursor
+" is on, not the whole file, so the selection step is required
+nmap <leader>Gr ggVG<Action>(Vcs.RollbackChangedLines)<Esc>
+" discard uncommitted changes on ONLY the line the cursor is currently on -
+" this is what Vcs.RollbackChangedLines does with no selection at all
+nmap <leader>GR <Action>(Vcs.RollbackChangedLines)
+" pull/update the project from the remote (git pull equivalent)
+nmap <leader>Gu <Action>(Vcs.UpdateProject)
+" fetch from the remote WITHOUT merging/rebasing (unlike Gu, which also updates the working copy)
+nmap <leader>Gf <Action>(Git.Fetch)
+" commit staged changes and push in one step (capital P to stay next to lowercase Gp = push-only)
+nmap <leader>GP <Action>(Git.Commit.And.Push.Executor)
+" open the current branch's pull request in the browser (GitHub only)
+nmap <leader>Go <Action>(Github.View.Pull.Request)
+" open the generic VCS actions popup menu (update, commit, push, branches, etc. in one list)
+nmap <leader>Gm <Action>(VcsGroups)
+" focus/open the Version Control tool window (the tabbed one with Log/Commit/etc. panes, distinct from Gt's Commit-only tool window)
+nmap <leader>Gv <Action>(ActivateVersionControlToolWindow)
+let g:WhichKeyDesc_git = "<leader>G Git"
+let g:WhichKeyDesc_git_checkin = "<leader>Gc Commit"
+let g:WhichKeyDesc_git_push = "<leader>Gp Push"
+let g:WhichKeyDesc_git_branches = "<leader>Gb Branches"
+let g:WhichKeyDesc_git_annotate = "<leader>Ga Annotate"
+let g:WhichKeyDesc_git_tool_window = "<leader>Gt Focus Commit Tool Window"
+let g:WhichKeyDesc_git_rollback = "<leader>Gr Rollback Whole File"
+let g:WhichKeyDesc_git_rollback_line = "<leader>GR Rollback Current Line"
+let g:WhichKeyDesc_git_fetch = "<leader>Gf Fetch"
+let g:WhichKeyDesc_git_commit_and_push = "<leader>GP Commit And Push"
+let g:WhichKeyDesc_git_view_pull_request = "<leader>Go View Pull Request"
+let g:WhichKeyDesc_git_vcs_menu = "<leader>Gm VCS Popup Menu"
+let g:WhichKeyDesc_git_vcs_tool_window = "<leader>Gv Focus VCS Tool Window"
+let g:WhichKeyDesc_git_update_project = "<leader>Gu Update Project"
