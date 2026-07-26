@@ -243,8 +243,48 @@ set matchit
 " yanked (yy, y{motion}, etc) - purely visual feedback, no new keybinding
 set highlightedyank
 
-" --- These two need a separate JetBrains Marketplace plugin installed
-" first (unlike everything above, which is bundled in IdeaVim itself) ---
+" --- More native text-objects/motions (bundled in IdeaVim itself, found in
+" a follow-up pass over the same ~43-config survey plus the official
+" IdeaVim Plugins wiki - no separate JetBrains Marketplace plugin needed) ---
+
+" textobj-entire: adds the 'e' (entire buffer) text object regardless of
+" cursor position - vae selects the whole file, dae deletes it all, etc
+set textobj-entire
+" textobj-indent: adds text objects based on indentation level - ai selects
+" a block of same-or-greater indent, ii excludes the line that starts it
+set textobj-indent
+" functextobj: adds the 'm' (method) text object - dam deletes a method
+" (signature+body), cim changes just the inner body, aM includes
+" JavaDoc/annotations too; PSI-aware, works on the innermost nested method
+set functextobj
+" classtextobj: adds the 'c' (class) text object - dac deletes a whole class
+" definition, vac selects it; PSI-aware, innermost enclosing class if nested
+set classtextobj
+" targets: expands the built-in text objects (di(, ci", ...) with more
+" variants - I/A exclude/include surrounding whitespace, and in{obj}/il{obj}
+" operate on the next/last occurrence without moving the cursor there first
+" (e.g. cin) changes inside the next parentheses)
+set targets
+" mini-ai: adds 'q' (any quote) and 'b' (any bracket) text objects - iq/aq
+" match whichever quote type is nearest, ib/ab match (), {} or [] alike
+set mini-ai
+" indentwise: adds motions that jump by indentation level instead of by
+" content - [- and ]- go to the previous/next line of lesser indent, [+/]+
+" for greater indent, [%/]% jump to the start/end of the current indent block
+set indentwise
+" CamelCaseMotion: adds w/b/e/ge-style motions that jump by sub-word instead
+" of whole word - each uppercase letter in camelCase/PascalCase, or each _/-
+" in snake_case/kebab-case, counts as a boundary (e.g. on getUserAccountBalance,
+" \w hops User -> Account -> Balance one at a time instead of skipping it all).
+" Bound to the backslash prefix (the old default leader, unused since
+" mapleader was moved to space above) instead of <leader> itself, because
+" <leader>w/<leader>b are already the Window/Bookmarks groups below - must be
+" set BEFORE the "set CamelCaseMotion" line that follows
+let g:camelcasemotion_key = '\'
+set CamelCaseMotion
+
+" --- These need a separate JetBrains Marketplace plugin installed first
+" (unlike everything above, which is bundled in IdeaVim itself) ---
 
 " quickscope: requires the "IdeaVim-Quickscope" plugin. Always-on highlight
 " of a unique target character in every word on the line, to help aim f/F/t/T
@@ -255,6 +295,16 @@ set quickscope
 " letter - type that letter and the cursor jumps straight there in one move
 " (e.g. <leader><leader>w labels every word start currently visible)
 set easymotion
+" VimEverywhere: reuses the AceJump plugin already installed above for
+" easymotion. Ctrl-Shift-\ overlays letter hints on any clickable UI element
+" (buttons, tool window tabs, tree nodes...) - type the letters to activate
+" it without touching the mouse. Also makes NERDTree's o/t/T/s/i mappings
+" work in any focused tree, and enables Vim window-motions inside tool windows
+set VimEverywhere
+" youcompleteme: while the code-completion popup is open, Tab/Shift-Tab cycle
+" through its items instead of doing their normal job (insert a tab / dedent);
+" falls back to normal behavior automatically once the popup closes
+set youcompleteme
 
 " ==========================================
 " LEADER MAPPINGS - Goto / Search / Files
