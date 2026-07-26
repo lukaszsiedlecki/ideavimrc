@@ -6,7 +6,9 @@ Built up in stages starting from the
 [dbilici/IdeaVim](https://github.com/dbilici/IdeaVim) reference config,
 then extended with a which-key powered leader-key layout, every native Vim
 text-editing operator worth having, and a survey of ~40 other people's
-`.ideavimrc` files for IntelliJ actions worth binding.
+`.ideavimrc` files plus the official
+[IdeaVim Plugins wiki](https://github.com/JetBrains/ideavim/blob/master/doc/IdeaVim%20Plugins.md)
+for IntelliJ actions and bundled extensions worth binding.
 
 ## Usage
 
@@ -66,10 +68,35 @@ learn what each line is for).
 | `argtextobj` | `ia`/`aa` text object | `dia` deletes a function argument |
 | `matchit` | extends `%` | jumps between `if`/`else`/`end`, tags, not just brackets |
 | `highlightedyank` | — | flashes a highlight on whatever was just yanked |
+| `textobj-entire` | `ae`/`ie` text object | `vae` selects the whole buffer |
+| `textobj-indent` | `ai`/`ii` text object | `dai` deletes a same-or-greater-indent block |
+| `functextobj` | `am`/`aM`/`im` text object | `dam` deletes a whole method, `cim` its inner body |
+| `classtextobj` | `ac` text object | `dac` deletes a whole class definition |
+| `targets` | more `di(`/`ci"`-style variants | `cin)` changes inside the *next* parens without moving there first |
+| `mini-ai` | `aq`/`iq`/`ab`/`ib` text object | `dib` deletes inside whichever bracket type is nearest |
+| `indentwise` | `[-`/`]-`/`[+`/`]+`/`[%`/`]%` motions | `]%` jumps to the end of the current indent block |
+| `CamelCaseMotion` | `\w`/`\b`/`\e`/`\ge` motions | `\w` on `getUserAccountBalance` hops `User → Account → Balance` |
+
+`CamelCaseMotion` needs `g:camelcasemotion_key` set *before* `set
+CamelCaseMotion` — bound to `\` (the pre-space-leader default, otherwise
+unused here) instead of `<leader>` since `<leader>w`/`<leader>b` are already
+the Window/Bookmarks groups below.
 
 Two more require a separate JetBrains Marketplace plugin (see
 Requirements): `quickscope` (always-on `f`/`F` target highlighting) and
 `easymotion` (`<leader><leader>{motion}` label-jump navigation).
+
+### IDE-wide extras
+
+- `VimEverywhere` — reuses the AceJump plugin already required for
+  `easymotion` above, no separate install. `Ctrl-Shift-\` overlays letter
+  hints on any clickable UI element (buttons, tool window tabs, tree
+  nodes...); also makes NERDTree's `o`/`t`/`T`/`s`/`i` mappings work in any
+  focused tree, and enables Vim window-motions inside tool windows.
+- `youcompleteme` — no extra plugin. While the code-completion popup is
+  open, `Tab`/`Shift-Tab` cycle through its items instead of doing their
+  normal job (insert a tab / dedent); falls back to normal behavior
+  automatically once the popup closes.
 
 ### Raw (non-leader) key mappings
 
