@@ -372,7 +372,16 @@ let g:WhichKeyDesc_search_text = "<leader>st Text Search"
 " show recently opened files
 nmap <leader>fr <Action>(RecentFiles)
 " switch to another recently opened project
-nmap <leader>fp <Action>(ManageRecentProjects)
+" ManageRecentProjects used to be mapped here directly, but its popup gets
+" instantly closed under the COSMIC desktop (confirmed upstream bug,
+" pop-os/cosmic-epoch#1856 - COSMIC re-tiles the window when the popup
+" opens, killing it; not fixable from here). $LRU is the same "Recent
+" Projects" list shown as an ActionGroup popup instead (same class as the
+" already-working ToolWindowsGroup/VcsGroups popups below), which sidesteps
+" the bug. Left the old line commented out in case COSMIC fixes this
+" upstream and the original mapping becomes preferable again:
+" nmap <leader>fp <Action>(ManageRecentProjects)
+nmap <leader>fp <Action>($LRU)
 " show/hide the NERDTree file explorer (Project tool window)
 nmap <leader>fe :NERDTreeToggle<CR>
 " reveal & focus the current file inside the tree (opens it first if closed) - this is what you want when focus already moved to the editor and you need to jump back to the tree
