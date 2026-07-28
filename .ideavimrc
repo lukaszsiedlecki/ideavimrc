@@ -865,6 +865,11 @@ nmap <leader>Gc <Action>(CheckinProject)
 nmap <leader>Gp <Action>(Vcs.Push)
 " open the branch picker (checkout / create / merge branches)
 nmap <leader>Gb <Action>(Git.Branches)
+" merge another branch into the current branch directly - skips the
+" Branches popup and its submenu, opens the branch-picker dialog straight
+" into "pick a branch to merge into current" (uppercase M so it stays next
+" to lowercase Gm, the generic VCS popup menu, without colliding with it)
+nmap <leader>GM <Action>(Git.Merge)
 " show git blame annotations in the left margin of the current file
 nmap <leader>Ga <Action>(Annotate)
 " focus/open the Commit tool window (just switches focus, unlike Gc which starts a commit)
@@ -893,6 +898,7 @@ let g:WhichKeyDesc_git = "<leader>G Git"
 let g:WhichKeyDesc_git_checkin = "<leader>Gc Commit"
 let g:WhichKeyDesc_git_push = "<leader>Gp Push"
 let g:WhichKeyDesc_git_branches = "<leader>Gb Branches"
+let g:WhichKeyDesc_git_merge = "<leader>GM Merge Branch Into Current"
 let g:WhichKeyDesc_git_annotate = "<leader>Ga Annotate"
 let g:WhichKeyDesc_git_tool_window = "<leader>Gt Focus Commit Tool Window"
 let g:WhichKeyDesc_git_rollback = "<leader>Gr Rollback Whole File"

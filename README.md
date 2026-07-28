@@ -129,7 +129,7 @@ at each one, along with what it's overriding).
 | `<leader>b` | Bookmarks | 7 |
 | `<leader>v` | IdeaVim (edit/reload config) | 2 |
 | `<leader>c` | Case Conversion (Visual mode) | 12 |
-| `<leader>G` | Git | 13 |
+| `<leader>G` | Git | 14 |
 | `<leader>m`/`T`/`B`/`W` | Misc (popup menu, terminal, database, hide-all) | 4 standalone |
 
 Every group has a `g:WhichKeyDesc_*` label per entry (not just one per
