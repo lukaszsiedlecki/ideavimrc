@@ -34,12 +34,20 @@ enough for those to take effect.
 - [Which Key Lazy](https://plugins.jetbrains.com/plugin/30446-which-key-lazy) — leader-key popup
 - [IdeaVim-Quickscope](https://plugins.jetbrains.com/plugin/19417-ideavim-quickscope)
 - [IdeaVim-EasyMotion](https://plugins.jetbrains.com/plugin/13360-ideavim-easymotion/) + [AceJump](https://plugins.jetbrains.com/plugin/7086-acejump/)
+- [Case Conversion](https://plugins.jetbrains.com/plugin/10985-case-conversion) — powers the `<leader>c` Visual-mode case-conversion group
 
-Optional companion file (not tracked here, lives outside this repo):
-`~/.whichkey-lazy.json` — label overrides for which-key entries that
-Which Key Lazy can't describe on its own (see comments in `.ideavimrc` for
-which mappings need this — mainly Visual-mode leader groups and a few
-Vim-native extension mappings it can't introspect).
+`.whichkey-lazy.json` in this repo holds label overrides for which-key
+entries that Which Key Lazy can't describe on its own (see comments in
+`.ideavimrc` for which mappings need this — mainly Visual-mode leader
+groups and a few Vim-native extension mappings it can't introspect). Which
+Key Lazy always reads this file from the user's home directory, so symlink
+it there the same way as `.ideavimrc`:
+
+- **Linux/macOS**: `ln -sf ~/repo/ideavimrc/.whichkey-lazy.json ~/.whichkey-lazy.json`
+- **Windows** (PowerShell, as Administrator): `New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.whichkey-lazy.json" -Target "$env:USERPROFILE\repo\ideavimrc\.whichkey-lazy.json"`
+
+Adjust the source path in either command if this repo isn't cloned to
+`~/repo/ideavimrc`.
 
 ## What's inside
 

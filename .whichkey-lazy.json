@@ -1,0 +1,20 @@
+{
+  "overrides": {
+    "c": { "description": "Case Conversion" },
+    "cm": { "description": "Case Menu" },
+    "cc": { "description": "camelCase" },
+    "cp": { "description": "PascalCase" },
+    "cs": { "description": "snake_case" },
+    "cS": { "description": "SCREAMING_SNAKE_CASE" },
+    "cl": { "description": "lowercase" },
+    "cu": { "description": "UPPERCASE" },
+    "c.": { "description": "dot.case" },
+    "cw": { "description": "Separate Words" },
+    "ct": { "description": "Title Case" },
+    "c-": { "description": "dash-case" },
+    "cd": { "description": "Sentence case" },
+    "fe": { "description": "Toggle NERDTree" },
+    "fn": { "description": "Find current file in NERDTree" },
+    "ve": { "description": "Edit ideavimrc" }
+  }
+}
