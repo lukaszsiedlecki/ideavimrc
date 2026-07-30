@@ -151,7 +151,7 @@ navigation, answered as they came up. Newest rows go at the bottom.
 
 | What | Shortcut | Explanation |
 |---|---|---|
-| Letter-overlay jump (AceJump/EasyMotion) | `<leader><leader>{motion}` | `easymotion` (`.ideavimrc:297`) labels every on-screen target for that motion with a letter; type it to jump straight there. |
+| Letter-overlay jump (AceJump/EasyMotion) | `<leader><leader>{motion}` | `easymotion` (`.ideavimrc:297`) labels every on-screen target for that motion with a letter; type it to jump straight there. `{motion}` is the same letter you'd normally type after a plain Vim motion — `w`/`b`/`e`/`ge` (word start/back/end), `j`/`k` (line down/up), `f{char}`/`F{char}` (find char forward/back), `t{char}`/`T{char}` (till char forward/back), `n` (repeat last search) — each turned into a label-jump instead of its normal repeated movement. |
 | Same, but for UI elements | `Ctrl-Shift-\` | `VimEverywhere` (`.ideavimrc:303`) reuses the same AceJump plugin to label buttons/tabs/tree nodes instead of text. |
 | Quickscope | *(always on)* | `quickscope` (`.ideavimrc:292`) highlights a unique char per word to help aim `f`/`F`/`t`/`T` — visual aid only, no jump of its own. |
 | `f`/`F` vs `t`/`T` | — | `f`/`t` search forward, `F`/`T` backward; `f`/`F` land *on* the char, `t`/`T` land just *before* it. Mnemonic: `f` = find (on), `t` = till (up to). |
