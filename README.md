@@ -164,3 +164,4 @@ navigation, answered as they came up. Newest rows go at the bottom.
 | Find in Files (classic dialog) | `<leader>fc` | `FindInPath` (`.ideavimrc:392`) — full scope/regex/case-sensitivity controls. |
 | Find in Files (unified search) | `<leader>st` | `TextSearchAction` (`.ideavimrc:359`) — newer Search Everywhere "Text" tab. |
 | Jump to a method's implementation | `<leader>gd` → `<leader>gi` | Cursor on `foo` in `payment.foo()`: `gd` first (lands in the body if `Payment` is concrete); if it only lands on a signature, follow with `gi`. |
+| Run the app in debug mode | `<leader>dx` / `<leader>dc` | `Debug` (`.ideavimrc:511`) runs the current/default run configuration in debug; `ContextDebug` (`.ideavimrc:513`) debugs whatever's under the cursor (e.g. a single test), mirroring `<leader>rc` for plain runs. Set a breakpoint first with `<leader>db` (`.ideavimrc:521`). |
