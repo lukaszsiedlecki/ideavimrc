@@ -143,3 +143,61 @@ at each one, along with what it's overriding).
 Every group has a `g:WhichKeyDesc_*` label per entry (not just one per
 group) so the which-key popup is fully readable — press `<leader>` and
 read, instead of memorizing this table.
+
+## Q&A
+
+Running log of one-off questions about this config or general IDE/Vim
+navigation, answered as they came up. Newest entries go at the bottom.
+
+**How does the letter-overlay jump plugin work (AceJump/EasyMotion)?**
+`<leader><leader>{motion}` (`set easymotion`, `.ideavimrc:297`) labels every
+on-screen target for that motion with a letter overlay; typing the letter
+jumps the cursor straight there. `VimEverywhere` (`Ctrl-Shift-\`,
+`.ideavimrc:303`) reuses the same AceJump plugin to label clickable UI
+elements (buttons, tool window tabs, tree nodes) instead of text targets.
+
+**How does quickscope work, and what's the difference between `f`/`F` and
+`t`/`T`?**
+`quickscope` (`.ideavimrc:292`) highlights a unique target character in
+every word on the line to help aim `f`/`F`/`t`/`T` — it's purely a visual
+aid, the actual jump is native Vim. `f`/`t` search forward, `F`/`T` search
+backward; `f`/`F` land *on* the matched character, `t`/`T` land just
+*before* it (in the direction of travel). Mnemonic: `f` = find (on the
+char), `t` = till (up to, not onto, the char).
+
+**Standing on a class usage (e.g. cursor on `Payment` in `List<Payment>`),
+how do I jump into that class?**
+`<leader>gd` → `GotoDeclaration` (`.ideavimrc:320`). Related: `<leader>gy`
+→ `GotoTypeDeclaration` (`.ideavimrc:326`) when standing on a *variable*
+and wanting its type's declaration instead of the variable's; `<leader>gi`
+→ `GotoImplementation` (`.ideavimrc:322`) when the declaration is an
+interface/abstract method and you want a concrete implementation instead.
+
+**How do I jump back to where I was before a Goto-style jump?**
+`Ctrl-o` → `Action(Back)` / `Ctrl-i` → `Action(Forward)`
+(`.ideavimrc:110-112`), mirroring native Vim's jumplist direction. `Ctrl-i`
+shares a keycode with `Tab`, which is why this pair needed a `sethandler`
+(`.ideavimrc:107-108`) — remember that `sethandler` lines need a full IDE
+restart to take effect, not just `<leader>vr`.
+
+**How do I search for something only inside the current class?**
+Plain Vim `/pattern` already scopes to the current buffer, and one file is
+one class in Java/Kotlin, so that's usually enough. For "every usage of
+the symbol under the cursor, but only in this file" (as opposed to the
+whole-project `<leader>su`/`<leader>iu`), use `<leader>iH` →
+`HighlightUsagesInFile` (`.ideavimrc:722`), then `<leader>in`/`<leader>iN`
+(`.ideavimrc:724,726`) to step between the highlighted occurrences.
+
+**Do I have an IntelliJ "Find in Files" equivalent?**
+Two options: `<leader>fc` → `FindInPath` (`.ideavimrc:392`), the classic
+standalone dialog with full scope/regex/case-sensitivity controls; and
+`<leader>st` → `TextSearchAction` (`.ideavimrc:359`), the newer unified
+Search Everywhere "Text" tab.
+
+**Standing on a method call (e.g. cursor on `foo` in `payment.foo()`), how
+do I jump to its implementation?**
+Start with `<leader>gd` (`GotoDeclaration`, `.ideavimrc:320`) — if
+`Payment` is a concrete class this lands you directly in the method body.
+If it lands on a bare signature instead (because `foo()` is declared on an
+interface/abstract class), use `<leader>gi` (`GotoImplementation`,
+`.ideavimrc:322`) to pick or jump straight to the concrete implementation.
