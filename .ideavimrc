@@ -475,6 +475,8 @@ let g:WhichKeyDesc_window_unwrap = "<leader>wU Unwrap"
 
 " --- Run (<leader>r) ---
 
+" run the current/default run configuration (Run's counterpart to <leader>dx for Debug)
+nmap <leader>rx <Action>(Run)
 " open the Run popup menu (pick and run any configuration from a menu)
 nmap <leader>rm <Action>(RunMenu)
 " run the class under the cursor directly (e.g. a file with a main method)
@@ -492,6 +494,7 @@ nmap <leader>rs <Action>(Stop)
 " open a picker to choose which run configuration to use
 nmap <leader>rC <Action>(ChooseRunConfiguration)
 let g:WhichKeyDesc_run = "<leader>r Run"
+let g:WhichKeyDesc_run_execute = "<leader>rx Run"
 let g:WhichKeyDesc_run_menu = "<leader>rm Run Menu"
 let g:WhichKeyDesc_run_class = "<leader>rn Run Class"
 let g:WhichKeyDesc_run_context = "<leader>rc Context Run"

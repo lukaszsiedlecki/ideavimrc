@@ -128,7 +128,7 @@ at each one, along with what it's overriding).
 | `<leader>s` | Search | 8 |
 | `<leader>f` | Files | 13 |
 | `<leader>w` | Window | 12 |
-| `<leader>r` | Run | 8 |
+| `<leader>r` | Run | 9 |
 | `<leader>d` | Debugging | 13 |
 | `<leader>l` | Language / refactor | 19 |
 | `<leader>t` | Tabs | 18 |
@@ -165,3 +165,4 @@ navigation, answered as they came up. Newest rows go at the bottom.
 | Find in Files (unified search) | `<leader>st` | `TextSearchAction` (`.ideavimrc:359`) — newer Search Everywhere "Text" tab. |
 | Jump to a method's implementation | `<leader>gd` → `<leader>gi` | Cursor on `foo` in `payment.foo()`: `gd` first (lands in the body if `Payment` is concrete); if it only lands on a signature, follow with `gi`. |
 | Run the app in debug mode | `<leader>dx` / `<leader>dc` | `Debug` (`.ideavimrc:511`) runs the current/default run configuration in debug; `ContextDebug` (`.ideavimrc:513`) debugs whatever's under the cursor (e.g. a single test), mirroring `<leader>rc` for plain runs. Set a breakpoint first with `<leader>db` (`.ideavimrc:521`). |
+| Run the app normally (no debugger) | `<leader>rx` | `Action(Run)` — runs the current/default run configuration, mirroring `<leader>dx` for Debug. Added because it was missing: `<leader>rr` (Rerun) only repeats a *previous* run, it doesn't launch the default configuration from scratch. |
